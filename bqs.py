@@ -1,6 +1,6 @@
 import base64
 import time
-
+import os
 import requests
 from Crypto.Cipher import PKCS1_v1_5
 from Crypto.PublicKey import RSA
@@ -14,6 +14,8 @@ SessionHeader = {
     'User-Agent': ''
 }
 
+s.headers.update(SessionHeader)
+
 VpnLoginUrl = 'https://cas-443.webvpn.bjut.edu.cn/login?service=https%3A%2F%2Fwebvpn.bjut.edu.cn%2Fusers%2Fauth%2Fcas' \
               '%2Fcallback%3Furl'
 
@@ -26,12 +28,38 @@ JwQueryUrl = f'https://jwglxt-443.webvpn.bjut.edu.cn/cjcx/cjcx_cxDgXscj.html?doT
 
 NotifyUrl = f'https://sc.ftqq.com/{config.SCKEY}.send'
 
-VpnLoggedIn = False
-JwLoggedIn = False
+
+class CloseHelper:
+    VpnLoggedIn = False
+    JwLoggedIn = False
+
+
+def try_get(url):
+    for i in range(10):
+        try:
+            res = s.get(url)
+            return res
+        except requests.ConnectionError as e:
+            time.sleep(5)
+            if i == 9:
+                raise e
+            continue
+
+
+def try_post(url, data):
+    for i in range(10):
+        try:
+            res = try_post(url, data)
+            return res
+        except requests.ConnectionError as e:
+            time.sleep(5)
+            if i == 9:
+                raise e
+            continue
 
 
 def get_vpn_login_data():
-    loginPageRes = s.get('http://www.webvpn.bjut.edu.cn')
+    loginPageRes = try_get('http://www.webvpn.bjut.edu.cn')
     loginPageBs = BeautifulSoup(loginPageRes.text, features='html.parser')
     hiddenSecrets = loginPageBs.select('form .dl-btn input')
     lt = hiddenSecrets[0]['value']
@@ -48,22 +76,22 @@ def get_vpn_login_data():
 
 
 def vpn_login(login_data):
-    loginRes = s.post(VpnLoginUrl, data=login_data)
+    loginRes = try_post(VpnLoginUrl, login_data)
     if loginRes.url == VpnLoginUrl:
         print('login failed. check your username and password')
         return False
-    VpnLoggedIn = True
+    CloseHelper.VpnLoggedIn = True
     return True
 
 
 def vpn_logout():
     print('vpn logout')
-    VpnLoggedIn = False
-    s.get('https://www.webvpn.bjut.edu.cn/users/sign_out')
+    CloseHelper.VpnLoggedIn = False
+    try_get('https://www.webvpn.bjut.edu.cn/users/sign_out')
 
 
 def get_jw_login_data():
-    res = s.get(JwPageUrl)
+    res = try_get(JwPageUrl)
     soup = BeautifulSoup(res.text, 'html.parser')
     csrftoken = soup.select_one('form #csrftoken')['value']
     return {'csrftoken': csrftoken, 'language': 'zh_CN', 'yhm': config.USERNAME}
@@ -79,7 +107,7 @@ def base64_to_int(b64str: str):
 
 
 def get_rsa_public_key():
-    res = s.get(JwRsaKeyGen)
+    res = try_get(JwRsaKeyGen)
     data = res.json()
     n = base64_to_int(data['modulus'])
     e = base64_to_int(data['exponent'])
@@ -88,10 +116,10 @@ def get_rsa_public_key():
 
 
 def jw_login(data):
-    res = s.post(JwLoginUrl, data)
+    res = try_post(JwLoginUrl, data)
     try:
         _ = res.url.index('https://jwglxt-443.webvpn.bjut.edu.cn/xtgl/index_initMenu.html')
-        JwLoggedIn = True
+        CloseHelper.JwLoggedIn = True
         return True
     except ValueError:
         return False
@@ -99,8 +127,8 @@ def jw_login(data):
 
 def jw_logout():
     print('jw logout')
-    JwLoggedIn = False
-    s.get(f'https://jwglxt-443.webvpn.bjut.edu.cn/logout?t={timestamp}&login_type=')
+    CloseHelper.JwLoggedIn = False
+    try_get(f'https://jwglxt-443.webvpn.bjut.edu.cn/logout?t={timestamp}&login_type=')
 
 
 def query_score():
@@ -115,7 +143,7 @@ def query_score():
         'queryModel.sortOrder': 'asc',
         'time': 1
     }
-    res = s.post(JwQueryUrl, data)
+    res = try_post(JwQueryUrl, data)
     scoreItems = res.json()['items']
     print(f'fetched {len(scoreItems)} scores')
     scores = {}
@@ -130,13 +158,13 @@ def notify_score(score_dict):
         'text': 'bqs查询结果',
         'desc': desc
     }
-    s.post(NotifyUrl, data)
+    try_post(NotifyUrl, data)
 
 
 def close(code):
-    if JwLoggedIn:
+    if CloseHelper.JwLoggedIn:
         jw_logout()
-    if VpnLoggedIn:
+    if CloseHelper.VpnLoggedIn:
         vpn_logout()
     s.close()
     exit(code)

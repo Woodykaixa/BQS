@@ -158,7 +158,7 @@ def notify_score(score_dict):
         'text': 'bqs查询结果',
         'desc': desc
     }
-    try_post(NotifyUrl, data)
+    s.post(NotifyUrl, data)
 
 
 def close(code):

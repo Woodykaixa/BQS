@@ -49,7 +49,7 @@ def try_get(url):
 def try_post(url, data):
     for i in range(10):
         try:
-            res = try_post(url, data)
+            res = s.post(url, data)
             return res
         except requests.ConnectionError as e:
             time.sleep(5)

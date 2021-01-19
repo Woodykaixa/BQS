@@ -77,7 +77,7 @@ def get_vpn_login_data():
 
 def vpn_login(login_data):
     loginRes = try_post(VpnLoginUrl, login_data)
-    if loginRes.url == VpnLoginUrl:
+    if loginRes.url != VpnLoginUrl:
         print('login failed. check your username and password')
         return False
     CloseHelper.VpnLoggedIn = True
@@ -189,6 +189,5 @@ if __name__ == '__main__':
         else:
             print('jw login failed')
             close(1)
-
     else:
         close(1)

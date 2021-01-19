@@ -171,8 +171,6 @@ def close(code):
 
 
 if __name__ == '__main__':
-    if not config.ENABLE:
-        close(0)
     vpnLoginData = get_vpn_login_data()
     if vpn_login(vpnLoginData):
         print('vpn login successful.')

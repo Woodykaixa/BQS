@@ -1,5 +1,4 @@
 import os
-ENABLE = True
 USERNAME = os.environ['BQS_USERNAME']
 VPN_PASSWORD = os.environ['BQS_VPN_PW']
 JW_PASSWORD = os.environ['BQS_JW_PW']

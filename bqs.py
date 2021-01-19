@@ -153,10 +153,10 @@ def query_score():
 
 
 def notify_score(score_dict):
-    desc = '\n'.join(list(map(lambda x: f'+ {x}: {score_dict[x]}', score_dict)))
+    desp = '\n'.join(list(map(lambda x: f'+ {x}: {score_dict[x]}', score_dict)))
     data = {
         'text': 'bqs查询结果',
-        'desc': desc
+        'desp': desp
     }
     s.post(NotifyUrl, data)
 
